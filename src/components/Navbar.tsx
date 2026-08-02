@@ -12,12 +12,13 @@ export function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Tableau de bord', icon: ShieldCheck },
-    { href: '/motion', label: 'Ping Passif', icon: Activity },
+    { href: '/motion', label: 'Détection Auto', icon: Activity },
     { href: '/contacts', label: 'Proches', icon: Users },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ];
 
   return (
+    <>
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090d16]/85 border-b border-slate-800/80 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-6">
         

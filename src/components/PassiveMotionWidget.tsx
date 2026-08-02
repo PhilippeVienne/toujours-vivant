@@ -50,13 +50,13 @@ export function PassiveMotionWidget() {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 flex-wrap">
-              <span>Détection de Mouvement Passif</span>
+              <span>Détection Automatique</span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                {isDesktopSimulated ? 'Simulation Souris PC' : 'Accéléromètre Mobile'}
+                {isDesktopSimulated ? 'Simulation PC' : 'Sur ce téléphone'}
               </span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Valide automatiquement votre check-in lors de vos déplacements ou mouvements.
+              Valide automatiquement votre check-in quand vous vous déplacez.
             </p>
           </div>
         </div>
@@ -84,11 +84,8 @@ export function PassiveMotionWidget() {
         {/* Meter */}
         <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
-            <span>{isDesktopSimulated ? 'Vitesse Souris' : 'Intensité Accélération'}</span>
+            <span>Niveau d'activité</span>
             <Zap className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white">
-            {currentMagnitude.toFixed(1)} <span className="text-xs text-slate-500 font-sans">m/s²</span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
             <div
@@ -108,7 +105,7 @@ export function PassiveMotionWidget() {
             {motionCount}
           </div>
           <div className="text-[11px] text-slate-500 font-medium">
-            Seuil configuré : {sensitivity.toFixed(1)} m/s²
+            Depuis l'activation
           </div>
         </div>
 
@@ -134,15 +131,15 @@ export function PassiveMotionWidget() {
           {isDesktopSimulated ? (
             <>
               <MousePointer className="w-4 h-4 text-indigo-400" />
-              <span>Mode Démonstration PC : Mouvements de la souris simulent l'accéléromètre 🟢</span>
+              <span>Mode démonstration PC : les mouvements de la souris simulent la détection 🟢</span>
             </>
           ) : (
             <>
               <Smartphone className="w-4 h-4 text-indigo-400" />
               <span>
                 {permissionGranted
-                  ? 'Capteur accéléromètre actif & autorisé 🟢'
-                  : 'Permission de détection de mouvement requise sur smartphone'}
+                  ? 'Détection active sur ce téléphone 🟢'
+                  : 'Autorisation requise pour activer la détection'}
               </span>
             </>
           )}
@@ -153,7 +150,7 @@ export function PassiveMotionWidget() {
             onClick={requestPermission}
             className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all"
           >
-            Activer l'accéléromètre (iOS)
+            Activer la détection (iOS)
           </button>
         )}
       </div>

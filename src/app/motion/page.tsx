@@ -14,9 +14,9 @@ export default function MotionPage() {
             <Activity className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">Ping Passif & Background Sync</h1>
+            <h1 className="text-2xl font-black text-white">Détection Automatique</h1>
             <p className="text-sm text-slate-400 mt-1">
-              Détection automatique d'activité physique grâce aux capteurs accéléromètre de votre smartphone.
+              Quand vous bougez avec votre téléphone en poche, l'application le remarque et fait le check-in à votre place.
             </p>
           </div>
         </div>
@@ -25,30 +25,30 @@ export default function MotionPage() {
       {/* Main Widget */}
       <PassiveMotionWidget />
 
-      {/* Technical Explanation Card */}
+      {/* Explanation Card */}
       <div className="p-6 rounded-2xl border border-slate-800 bg-slate-950/60 space-y-4">
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           <Info className="w-5 h-5 text-indigo-400" />
-          <span>Comment fonctionne le Ping Passif ?</span>
+          <span>Comment ça marche ?</span>
         </h3>
 
         <ul className="space-y-3 text-sm text-slate-300">
           <li className="flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Accéléromètre en temps réel :</strong> L'application analyse l'amplitude des mouvements (<code className="text-indigo-300">DeviceMotionEvent</code>).
+              <strong>Aucune action requise :</strong> tant que cette option est activée, marcher ou vous déplacer avec votre téléphone suffit à montrer que vous allez bien.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Validation automatique 30 min :</strong> Chaque fois qu'une activité physique significative est détectée, le timer Upstash Redis est automatiquement réinitialisé à 30 minutes.
+              <strong>Un vrai check-in reste toujours préférable :</strong> la détection automatique est un complément pratique, mais le tap manuel matin/soir reste le moyen le plus fiable de rassurer vos proches.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Fallback iOS Safari :</strong> En cas de mise en veille prolongée par le système, une notification Push de rappel est envoyée à 25 minutes pour vous inciter à valider d'un tap.
+              <strong>Un rappel avant l'échéance :</strong> si rien n'a été détecté et que l'heure du check-in approche, l'application vous envoie une notification pour vous le rappeler.
             </span>
           </li>
         </ul>
