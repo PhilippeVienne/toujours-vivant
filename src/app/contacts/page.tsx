@@ -8,9 +8,20 @@ import { EmergencyContact } from '@/types';
 import { signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 
+function ContactsManagerSkeleton() {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4 animate-pulse">
+      <div className="h-5 w-56 rounded bg-slate-800" />
+      <div className="h-16 rounded-2xl bg-slate-800/60" />
+      <div className="h-16 rounded-2xl bg-slate-800/60" />
+    </div>
+  );
+}
+
 export default function ContactsPage() {
   const { user, loading: authLoading } = useAuthSession();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
@@ -22,6 +33,8 @@ export default function ContactsPage() {
       if (data.user?.emergencyToken) setToken(data.user.emergencyToken);
     } catch (err) {
       console.error(err);
+    } finally {
+      setContactsLoading(false);
     }
   }, []);
 
@@ -98,12 +111,16 @@ export default function ContactsPage() {
       <TokenShareCard token={fallbackToken} userId={user.id} />
 
       {/* Per-Contact Dedicated Links Manager */}
-      <ContactsManager
-        initialContacts={contacts}
-        userId={user.id}
-        userEmergencyToken={fallbackToken}
-        onContactsChange={() => fetchContacts()}
-      />
+      {contactsLoading ? (
+        <ContactsManagerSkeleton />
+      ) : (
+        <ContactsManager
+          initialContacts={contacts}
+          userId={user.id}
+          userEmergencyToken={fallbackToken}
+          onContactsChange={() => fetchContacts()}
+        />
+      )}
 
     </div>
   );
