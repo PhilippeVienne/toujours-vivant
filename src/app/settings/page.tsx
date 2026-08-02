@@ -4,17 +4,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { Settings, Clock, MapPin, Bell, ShieldCheck, User as UserIcon, LogOut, Check, ArrowRight, Loader2, Sliders } from 'lucide-react';
 import { signOutUser, signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
+import { formatDurationMinutes } from '@/lib/formatTime';
 
 export default function SettingsPage() {
   const { user, loading: authLoading, setUser } = useAuthSession();
   const [saving, setSaving] = useState(false);
-  const [pingFrequency, setPingFrequency] = useState<number>(30);
+  const [pingFrequency, setPingFrequency] = useState<number>(720);
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
-  const [customInput, setCustomInput] = useState<string>('30');
+  const [customInput, setCustomInput] = useState<string>('720');
   const [attachLocation, setAttachLocation] = useState<boolean>(true);
   const [pushReminder, setPushReminder] = useState<boolean>(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   const fetchUserSettings = useCallback(async () => {
     try {
@@ -24,12 +26,14 @@ export default function SettingsPage() {
         const mins = Number(data.pingFrequencyMinutes);
         setPingFrequency(mins);
         setCustomInput(String(mins));
-        if (![15, 30, 45, 60, 120, 240].includes(mins)) {
+        if (![15, 60, 120, 240, 720, 1440].includes(mins)) {
           setIsCustomMode(true);
         }
       }
     } catch (err) {
       console.error('Error fetching settings:', err);
+    } finally {
+      setSettingsLoading(false);
     }
   }, []);
 
@@ -132,11 +136,11 @@ export default function SettingsPage() {
 
   const presetValues = [
     { mins: 15, label: '15 min', sub: 'Urgence accrue' },
-    { mins: 30, label: '30 min', sub: 'Recommandé (Par défaut)' },
-    { mins: 45, label: '45 min', sub: 'Modéré' },
-    { mins: 60, label: '1 heure', sub: 'Standard' },
-    { mins: 120, label: '2 heures', sub: 'Étendu' },
-    { mins: 240, label: '4 heures', sub: 'Longue durée' },
+    { mins: 60, label: '1 heure', sub: 'Suivi rapproché' },
+    { mins: 120, label: '2 heures', sub: 'Modéré' },
+    { mins: 240, label: '4 heures', sub: 'Journée active' },
+    { mins: 720, label: '12 heures', sub: 'Matin & soir (Recommandé)' },
+    { mins: 1440, label: '24 heures', sub: 'Un check-in par jour' },
   ];
 
   return (
@@ -183,6 +187,16 @@ export default function SettingsPage() {
       </div>
 
       {/* Check-in Delay Adjustment Section */}
+      {settingsLoading ? (
+        <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-4 animate-pulse">
+          <div className="h-5 w-64 rounded bg-slate-800" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-16 rounded-2xl bg-slate-800/60" />
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -196,7 +210,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-sm shrink-0">
-            {pingFrequency} min
+            {formatDurationMinutes(pingFrequency)}
           </div>
         </div>
 
@@ -246,17 +260,18 @@ export default function SettingsPage() {
                   value={customInput}
                   onChange={(e) => handleCustomInputChange(e.target.value)}
                   placeholder="Ex: 90"
-                  className="w-full px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full pl-4 pr-20 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
                 />
-                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">minutes</span>
+                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono pointer-events-none">minutes</span>
               </div>
               <p className="text-xs text-slate-400">
-                Soit <strong className="text-emerald-400 font-mono">{(Number(customInput) / 60).toFixed(1)} h</strong> de sécurité.
+                Soit <strong className="text-emerald-400 font-mono">{formatDurationMinutes(Number(customInput) || 0)}</strong> de sécurité.
               </p>
             </div>
           )}
         </div>
       </div>
+      )}
 
       {/* Preferences Toggles */}
       <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md space-y-6">
@@ -309,7 +324,7 @@ export default function SettingsPage() {
         {savedSuccess && (
           <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 animate-fade-in bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl">
             <Check className="w-4 h-4" />
-            <span>Nouveau délai enregistré ({pingFrequency} min) !</span>
+            <span>Nouveau délai enregistré ({formatDurationMinutes(pingFrequency)}) !</span>
           </span>
         )}
         <button

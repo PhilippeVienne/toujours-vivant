@@ -9,6 +9,7 @@ export interface UserProfile {
   emergencyToken: string;
   pingFrequencyMinutes: number;
   status: UserStatus;
+  offlineUntil?: string | null;
   lastPingAt: string;
   createdAt: string;
 }

@@ -121,8 +121,9 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile | nu
       email: 'user@example.com',
       fullName: 'Utilisateur',
       emergencyToken: fallbackToken,
-      pingFrequencyMinutes: 30,
+      pingFrequencyMinutes: 720,
       status: 'OK',
+      offlineUntil: null,
       lastPingAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
@@ -162,8 +163,9 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile | nu
     email: data.email || 'user@example.com',
     fullName: data.full_name || 'Utilisateur',
     emergencyToken,
-    pingFrequencyMinutes: data.ping_frequency_minutes || 30,
+    pingFrequencyMinutes: data.ping_frequency_minutes || 720,
     status: data.status || 'OK',
+    offlineUntil: data.offline_until || null,
     lastPingAt: data.last_ping_at || new Date().toISOString(),
     createdAt: data.created_at || new Date().toISOString(),
   };
@@ -180,6 +182,32 @@ export async function updateUserPingFrequency(userId: string, minutes: number): 
 
   if (error) {
     console.error('Erreur lors de la mise à jour du délai de ping:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Toggles "hors réseau" mode. Passing an ISO timestamp pauses alerting until
+ * that time (status PAUSED); passing null resumes monitoring immediately with
+ * a fresh check-in window (status OK, last_ping_at reset to now).
+ */
+export async function updateUserOfflineStatus(userId: string, offlineUntil: string | null): Promise<boolean> {
+  const client = supabaseAdmin || supabase;
+  if (!client) return false;
+
+  const updates = offlineUntil
+    ? { status: 'PAUSED', offline_until: offlineUntil }
+    : { status: 'OK', offline_until: null, last_ping_at: new Date().toISOString() };
+
+  const { error } = await client
+    .from('users')
+    .update(updates)
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour du statut hors-ligne:', error);
     return false;
   }
 
@@ -248,8 +276,9 @@ export async function fetchUserByToken(token: string): Promise<UserProfile | nul
       email: byToken.email,
       fullName: byToken.full_name,
       emergencyToken: byToken.emergency_token,
-      pingFrequencyMinutes: byToken.ping_frequency_minutes || 30,
+      pingFrequencyMinutes: byToken.ping_frequency_minutes || 720,
       status: byToken.status || 'OK',
+      offlineUntil: byToken.offline_until || null,
       lastPingAt: byToken.last_ping_at,
       createdAt: byToken.created_at,
     };
@@ -270,8 +299,9 @@ export async function fetchUserByToken(token: string): Promise<UserProfile | nul
         email: byId.email,
         fullName: byId.full_name,
         emergencyToken: byId.emergency_token,
-        pingFrequencyMinutes: byId.ping_frequency_minutes || 30,
+        pingFrequencyMinutes: byId.ping_frequency_minutes || 720,
         status: byId.status || 'OK',
+        offlineUntil: byId.offline_until || null,
         lastPingAt: byId.last_ping_at,
         createdAt: byId.created_at,
       };
@@ -294,8 +324,9 @@ export async function fetchUserByToken(token: string): Promise<UserProfile | nul
           email: matchedUser.email,
           fullName: matchedUser.full_name,
           emergencyToken: matchedUser.emergency_token,
-          pingFrequencyMinutes: matchedUser.ping_frequency_minutes || 30,
+          pingFrequencyMinutes: matchedUser.ping_frequency_minutes || 720,
           status: matchedUser.status || 'OK',
+          offlineUntil: matchedUser.offline_until || null,
           lastPingAt: matchedUser.last_ping_at,
           createdAt: matchedUser.created_at,
         };
@@ -426,10 +457,10 @@ export async function recordUserPing(
     return null;
   }
 
-  // Update user's last_ping_at & status
+  // Update user's last_ping_at & status (a ping always cancels any offline pause)
   await client
     .from('users')
-    .update({ last_ping_at: new Date().toISOString(), status: 'OK' })
+    .update({ last_ping_at: new Date().toISOString(), status: 'OK', offline_until: null })
     .eq('id', userId);
 
   return {

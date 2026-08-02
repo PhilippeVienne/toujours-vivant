@@ -1,37 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isSupabaseConfigured, fetchUserByToken, fetchContactByIdOrToken, fetchUserPings } from '@/lib/supabase';
-import { UserStatus } from '@/types';
-
-function computeRealtimeUserStatus(user: { lastPingAt?: string; pingFrequencyMinutes?: number; status?: UserStatus }) {
-  const customMinutes = user.pingFrequencyMinutes || 30;
-  const totalAllowedSeconds = customMinutes * 60;
-
-  if (!user.lastPingAt) {
-    return {
-      status: 'OK' as UserStatus,
-      secondsRemaining: totalAllowedSeconds,
-      elapsedSeconds: 0,
-    };
-  }
-
-  const lastPingMs = new Date(user.lastPingAt).getTime();
-  const nowMs = Date.now();
-  const elapsedSeconds = Math.max(0, Math.floor((nowMs - lastPingMs) / 1000));
-  const secondsRemaining = Math.max(0, totalAllowedSeconds - elapsedSeconds);
-
-  let status: UserStatus = 'OK';
-  if (secondsRemaining <= 0) {
-    status = 'ALERT';
-  } else if (secondsRemaining <= 300) {
-    status = 'WARNING';
-  }
-
-  return {
-    status,
-    secondsRemaining,
-    elapsedSeconds,
-  };
-}
+import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
 
 export async function GET(
   request: Request,

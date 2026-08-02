@@ -1,38 +1,9 @@
 import { NextResponse } from 'next/server';
 import { setUserCheckInTimer, getUserCheckInTimer } from '@/lib/redis';
 import { isSupabaseConfigured, fetchUserProfile, fetchUserContacts, fetchUserPings, recordUserPing, getAuthenticatedUserId } from '@/lib/supabase';
-import { PingType, UserStatus } from '@/types';
-
-function computeRealtimeUserStatus(user: { lastPingAt?: string; pingFrequencyMinutes?: number; status?: UserStatus }) {
-  const customMinutes = user.pingFrequencyMinutes || 30;
-  const totalAllowedSeconds = customMinutes * 60;
-
-  if (!user.lastPingAt) {
-    return {
-      status: 'OK' as UserStatus,
-      secondsRemaining: totalAllowedSeconds,
-      elapsedSeconds: 0,
-    };
-  }
-
-  const lastPingMs = new Date(user.lastPingAt).getTime();
-  const nowMs = Date.now();
-  const elapsedSeconds = Math.max(0, Math.floor((nowMs - lastPingMs) / 1000));
-  const secondsRemaining = Math.max(0, totalAllowedSeconds - elapsedSeconds);
-
-  let status: UserStatus = 'OK';
-  if (secondsRemaining <= 0) {
-    status = 'ALERT';
-  } else if (secondsRemaining <= 300) {
-    status = 'WARNING';
-  }
-
-  return {
-    status,
-    secondsRemaining,
-    elapsedSeconds,
-  };
-}
+import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
+import { formatDurationMinutes } from '@/lib/formatTime';
+import { PingType } from '@/types';
 
 export async function POST(request: Request) {
   try {
@@ -47,8 +18,8 @@ export async function POST(request: Request) {
 
     const actualPingType: PingType = pingType || 'MANUAL';
 
-    // 1. Fetch user's custom ping frequency (default 30 min)
-    let pingFrequencyMinutes = 30;
+    // 1. Fetch user's custom ping frequency (default 720 min / 12h, twice-daily check-in)
+    let pingFrequencyMinutes = 720;
     if (isSupabaseConfigured) {
       const userProfile = await fetchUserProfile(reqUserId);
       if (userProfile?.pingFrequencyMinutes) {
@@ -69,7 +40,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Ping enregistré avec succès. Timer réinitialisé à ${pingFrequencyMinutes} minutes. 🟢`,
+      message: `Ping enregistré avec succès. Prochain check-in dans ${formatDurationMinutes(pingFrequencyMinutes)}. 🟢`,
       ping: pingLog,
       status: 'OK',
       secondsRemaining: ttlSeconds,
@@ -89,7 +60,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         authenticated: false,
         status: 'OK',
-        secondsRemaining: 1800,
+        secondsRemaining: 43200,
         user: null,
         contacts: [],
         latestPings: []
@@ -115,7 +86,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         authenticated: false,
         status: 'OK',
-        secondsRemaining: 1800,
+        secondsRemaining: 43200,
         user: null,
         contacts: [],
         latestPings: []

@@ -2,6 +2,7 @@
 
 import { Activity, Heart, MapPin, Smartphone, Clock } from 'lucide-react';
 import { PingLog } from '@/types';
+import { formatRelativeTimeCompact } from '@/lib/formatTime';
 
 interface StatusTimelineProps {
   pings: PingLog[];
@@ -56,12 +57,7 @@ export function StatusTimeline({ pings }: StatusTimelineProps) {
         {pings.map((ping) => {
           const badge = getPingBadge(ping.pingType);
           const Icon = badge.icon;
-          const formattedDate = new Date(ping.createdAt).toLocaleTimeString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: 'short',
-          });
+          const formattedDate = formatRelativeTimeCompact(ping.createdAt);
 
           return (
             <div key={ping.id} className="relative group">

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Clock, RefreshCw, Plane } from 'lucide-react';
 import { UserStatus } from '@/types';
 
 interface StatusBadgeProps {
   initialStatus: UserStatus;
   initialSecondsRemaining: number;
+  totalSeconds?: number;
   lastPingAt?: string;
   onRefresh?: () => void;
 }
@@ -14,6 +15,7 @@ interface StatusBadgeProps {
 export function StatusBadge({
   initialStatus,
   initialSecondsRemaining,
+  totalSeconds,
   onRefresh,
 }: StatusBadgeProps) {
   const [seconds, setSeconds] = useState(initialSecondsRemaining);
@@ -25,6 +27,9 @@ export function StatusBadge({
   }, [initialSecondsRemaining, initialStatus]);
 
   useEffect(() => {
+    // While offline/paused, the countdown doesn't run — nothing to tick down.
+    if (status === 'PAUSED') return;
+
     const timer = setInterval(() => {
       setSeconds((prev) => {
         if (prev <= 1) {
@@ -41,13 +46,19 @@ export function StatusBadge({
     return () => clearInterval(timer);
   }, [status]);
 
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
+  const formatTime = (totalSecondsValue: number) => {
+    if (totalSecondsValue >= 3600) {
+      const hours = Math.floor(totalSecondsValue / 3600);
+      const minutes = Math.floor((totalSecondsValue % 3600) / 60);
+      return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+    }
+    const minutes = Math.floor(totalSecondsValue / 60);
+    const secs = totalSecondsValue % 60;
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = Math.min(100, Math.max(0, (seconds / 1800) * 100));
+  const progressDenominator = totalSeconds && totalSeconds > 0 ? totalSeconds : 1800;
+  const progressPercent = Math.min(100, Math.max(0, (seconds / progressDenominator) * 100));
 
   const getStatusStyles = () => {
     switch (status) {
@@ -83,6 +94,17 @@ export function StatusBadge({
           progressBg: 'bg-rose-500',
           icon: AlertTriangle,
           iconColor: 'text-rose-400',
+        };
+      case 'PAUSED':
+        return {
+          bg: 'from-indigo-950/40 via-slate-900/90 to-slate-950/90 border-indigo-500/30 shadow-indigo-950/30',
+          badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+          title: 'HORS RÉSEAU',
+          description: 'Vous êtes en mode hors réseau. Vos proches ne recevront pas d\'alerte tant que vous n\'êtes pas rentré(e).',
+          glow: 'bg-indigo-500/20',
+          progressBg: 'bg-indigo-400',
+          icon: Plane,
+          iconColor: 'text-indigo-400',
         };
       default:
         return {
@@ -137,7 +159,7 @@ export function StatusBadge({
         <div className="w-full md:w-auto flex flex-col items-stretch md:items-end bg-slate-950/90 border border-slate-800 rounded-2xl p-5 sm:px-7 sm:py-5 shadow-2xl min-w-[220px]">
           <div className="flex items-center justify-between md:justify-end gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1.5">
             <Clock className="w-4 h-4 text-emerald-400" />
-            <span>Temps restant</span>
+            <span>{status === 'PAUSED' ? 'Fin du mode hors réseau' : 'Prochain check-in dans'}</span>
           </div>
           
           <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white text-center md:text-right my-0.5">

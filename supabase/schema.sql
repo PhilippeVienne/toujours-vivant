@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS public.users (
     email TEXT UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
     emergency_token TEXT UNIQUE NOT NULL DEFAULT md5(random()::text || clock_timestamp()::text),
-    ping_frequency_minutes INT DEFAULT 30,
+    ping_frequency_minutes INT DEFAULT 720,
     status TEXT CHECK (status IN ('OK', 'WARNING', 'ALERT', 'PAUSED')) DEFAULT 'OK',
+    offline_until TIMESTAMPTZ,
     last_ping_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -30,6 +31,8 @@ CREATE TABLE IF NOT EXISTS public.emergency_contacts (
 -- Migrations d'ajustement si les tables existent déjà :
 ALTER TABLE public.emergency_contacts ALTER COLUMN email DROP NOT NULL;
 ALTER TABLE public.emergency_contacts ADD COLUMN IF NOT EXISTS contact_token TEXT UNIQUE DEFAULT md5(random()::text || clock_timestamp()::text);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS offline_until TIMESTAMPTZ;
+ALTER TABLE public.users ALTER COLUMN ping_frequency_minutes SET DEFAULT 720;
 
 -- Grant privileges for Supabase roles (PostgREST). RLS is the real enforcement
 -- layer; the unauthenticated 'anon' role does not need direct table privileges.

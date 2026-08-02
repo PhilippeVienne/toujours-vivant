@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendEmergencyAlertEmail } from '@/lib/resend';
 import { isSupabaseConfigured, supabase, supabaseAdmin } from '@/lib/supabase';
+import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
 
 export async function GET(request: Request) {
   return handleCheckAlerts(request);
@@ -30,17 +31,24 @@ async function handleCheckAlerts(request: Request) {
       const { data: users, error } = await client.from('users').select('*');
 
       if (!error && users && users.length > 0) {
-        const nowMs = Date.now();
         const appHost = request.headers.get('host') || 'toujours-vivant.fr';
         const protocol = appHost.includes('localhost') ? 'http' : 'https';
 
         for (const u of users) {
-          const pingFreq = u.ping_frequency_minutes || 30;
-          const allowedMs = pingFreq * 60 * 1000;
-          const lastPingMs = u.last_ping_at ? new Date(u.last_ping_at).getTime() : 0;
+          const pingFreq = u.ping_frequency_minutes || 720;
 
-          // Expiration check: if last ping was more than pingFreq minutes ago
-          const isExpired = lastPingMs > 0 && (nowMs - lastPingMs > allowedMs);
+          // Respects "hors réseau" pauses: stays PAUSED while offline_until is in
+          // the future, and resumes the countdown from offline_until (not the
+          // stale last ping) once it passes, so returning travelers get a full
+          // grace window instead of an immediate alert.
+          const { status: realtimeStatus } = computeRealtimeUserStatus({
+            lastPingAt: u.last_ping_at,
+            pingFrequencyMinutes: pingFreq,
+            status: u.status,
+            offlineUntil: u.offline_until,
+          });
+
+          const isExpired = realtimeStatus === 'ALERT';
 
           if (isExpired && u.status !== 'ALERT') {
             // Fetch user's emergency contacts who opted for email notifications
@@ -74,8 +82,8 @@ async function handleCheckAlerts(request: Request) {
               });
             }
 
-            // Update user status to ALERT in database
-            await client.from('users').update({ status: 'ALERT' }).eq('id', u.id);
+            // Update user status to ALERT in database (clears any stale offline pause)
+            await client.from('users').update({ status: 'ALERT', offline_until: null }).eq('id', u.id);
             alertsProcessedCount++;
             alertDetails.push({ userId: u.id, recipientEmails, emailResult });
           }

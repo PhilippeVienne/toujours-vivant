@@ -2,8 +2,9 @@
 
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShieldCheck, AlertTriangle, MapPin, Clock, Heart, ExternalLink, RefreshCw, UserCheck } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, MapPin, Clock, Heart, ExternalLink, RefreshCw, UserCheck, Plane, Hourglass } from 'lucide-react';
 import { UserStatus, PingLog } from '@/types';
+import { formatDuration, formatRelativeDateTime, formatRelativeTimeCompact } from '@/lib/formatTime';
 
 export default function PublicStatusPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -75,16 +76,13 @@ export default function PublicStatusPage({ params }: { params: Promise<{ token: 
   const latestPing = data.latestPing;
   const isContactView = Boolean(data.isContactView || queryContactId);
 
-  const formattedLastPing = lastPingAt
-    ? new Date(lastPingAt).toLocaleString('fr-FR', {
-        dateStyle: 'full',
-        timeStyle: 'medium',
-      })
-    : 'Inconnu';
+  const formattedLastPing = lastPingAt ? formatRelativeDateTime(lastPingAt) : 'Inconnu';
 
   const mapsUrl = (isContactView && latestPing?.latitude && latestPing?.longitude)
     ? `https://maps.google.com/?q=${latestPing.latitude},${latestPing.longitude}`
     : null;
+
+  const secondsRemaining = data.secondsRemaining ?? 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in py-6">
@@ -120,6 +118,8 @@ export default function PublicStatusPage({ params }: { params: Promise<{ token: 
             ? 'bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 border-emerald-500/40 shadow-emerald-500/10'
             : status === 'WARNING'
             ? 'bg-gradient-to-br from-amber-950/60 via-slate-900 to-slate-950 border-amber-500/40 shadow-amber-500/10'
+            : status === 'PAUSED'
+            ? 'bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-950 border-indigo-500/40 shadow-indigo-500/10'
             : 'bg-gradient-to-br from-rose-950/70 via-slate-900 to-slate-950 border-rose-500/60 shadow-rose-500/20'
         }`}
       >
@@ -128,6 +128,7 @@ export default function PublicStatusPage({ params }: { params: Promise<{ token: 
             {status === 'OK' && <Heart className="w-10 h-10 text-emerald-400 fill-emerald-400/20 animate-pulse" />}
             {status === 'WARNING' && <AlertTriangle className="w-10 h-10 text-amber-400 animate-bounce" />}
             {status === 'ALERT' && <AlertTriangle className="w-10 h-10 text-rose-500 animate-bounce" />}
+            {status === 'PAUSED' && <Plane className="w-10 h-10 text-indigo-400" />}
           </div>
 
           <div>
@@ -137,26 +138,44 @@ export default function PublicStatusPage({ params }: { params: Promise<{ token: 
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                   : status === 'WARNING'
                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : status === 'PAUSED'
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                   : 'bg-rose-500/30 text-rose-300 border-rose-500/50'
               }`}
             >
               {status === 'OK' && '🟢 Tout va bien !'}
               {status === 'WARNING' && '🟠 Check-in en retard'}
               {status === 'ALERT' && '🔴 Alerte Déclenchée'}
+              {status === 'PAUSED' && '🔵 Hors réseau'}
             </span>
           </div>
 
           <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
-            {status === 'OK' && `${fullName} a confirmé sa présence. Son chronomètre de sécurité est actif.`}
+            {status === 'OK' && `${fullName} a confirmé sa présence.`}
             {status === 'WARNING' && `${fullName} n'a pas encore effectué son check-in habituel.`}
             {status === 'ALERT' && `Attention : Aucun signalement reçu de ${fullName} depuis l'échéance du délai.`}
+            {status === 'PAUSED' && `${fullName} a prévenu qu'il/elle serait en zone sans réseau. Aucune alerte ne sera envoyée pendant cette période.`}
           </p>
 
-          <div className="pt-5 border-t border-white/10 flex items-center justify-center text-sm text-slate-200">
+          <div className="pt-5 border-t border-white/10 flex flex-col items-center justify-center gap-2 text-sm text-slate-200">
             <div className="flex items-center gap-2 font-medium">
               <Clock className="w-4 h-4 text-emerald-400" />
               <span>Dernier check-in enregistré : <strong className="text-white font-bold">{formattedLastPing}</strong></span>
             </div>
+
+            {(status === 'OK' || status === 'WARNING') && (
+              <div className="flex items-center gap-2 font-medium">
+                <Hourglass className="w-4 h-4 text-emerald-400" />
+                <span>Prochain check-in prévu dans <strong className="text-white font-bold">{formatDuration(secondsRemaining)}</strong></span>
+              </div>
+            )}
+
+            {status === 'PAUSED' && (
+              <div className="flex items-center gap-2 font-medium">
+                <Hourglass className="w-4 h-4 text-indigo-400" />
+                <span>De retour dans <strong className="text-white font-bold">{formatDuration(secondsRemaining)}</strong></span>
+              </div>
+            )}
           </div>
 
           {/* Position shown ONLY on contact view */}
@@ -213,7 +232,7 @@ export default function PublicStatusPage({ params }: { params: Promise<{ token: 
                   )}
                 </div>
                 <span className="text-slate-400 font-mono shrink-0">
-                  {new Date(ping.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  {formatRelativeTimeCompact(ping.createdAt)}
                 </span>
               </div>
             ))}

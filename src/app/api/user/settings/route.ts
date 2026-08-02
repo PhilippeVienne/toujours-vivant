@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isSupabaseConfigured, fetchUserProfile, updateUserPingFrequency, getAuthenticatedUserId } from '@/lib/supabase';
 import { setUserCheckInTimer } from '@/lib/redis';
+import { formatDurationMinutes } from '@/lib/formatTime';
 
 export async function GET(request: Request) {
   const userId = await getAuthenticatedUserId(request);
@@ -13,12 +14,12 @@ export async function GET(request: Request) {
     const user = await fetchUserProfile(userId);
     if (user) {
       return NextResponse.json({
-        pingFrequencyMinutes: user.pingFrequencyMinutes || 30,
+        pingFrequencyMinutes: user.pingFrequencyMinutes || 720,
       });
     }
   }
 
-  return NextResponse.json({ pingFrequencyMinutes: 30 });
+  return NextResponse.json({ pingFrequencyMinutes: 720 });
 }
 
 export async function POST(request: Request) {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       pingFrequencyMinutes: minutes,
-      message: `Délai de sécurité mis à jour à ${minutes} minutes avec succès.`,
+      message: `Délai de sécurité mis à jour à ${formatDurationMinutes(minutes)} avec succès.`,
     });
   } catch (error) {
     console.error('Error updating user settings:', error);
