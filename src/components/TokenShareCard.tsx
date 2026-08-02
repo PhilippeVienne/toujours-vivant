@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Share2, Copy, Check, ExternalLink, ShieldCheck, RefreshCw, AlertTriangle, Loader2, MessageCircle } from 'lucide-react';
+import { getAuthHeaders } from '@/lib/supabase';
 
 interface TokenShareCardProps {
   token: string;
@@ -42,8 +43,8 @@ export function TokenShareCard({ token: initialToken, userId, onTokenRevoked }: 
       setRevoking(true);
       const res = await fetch('/api/user/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({}),
       });
 
       const data = await res.json();

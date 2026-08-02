@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Settings, Clock, MapPin, Bell, ShieldCheck, User as UserIcon, LogOut, Check, ArrowRight, Loader2, Sliders } from 'lucide-react';
-import { signOutUser, signInWithGoogle } from '@/lib/supabase';
+import { signOutUser, signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 
 export default function SettingsPage() {
@@ -16,9 +16,9 @@ export default function SettingsPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
 
-  const fetchUserSettings = useCallback(async (userId: string) => {
+  const fetchUserSettings = useCallback(async () => {
     try {
-      const res = await fetch(`/api/user/settings?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch('/api/user/settings', { headers: await getAuthHeaders() });
       const data = await res.json();
       if (data.pingFrequencyMinutes) {
         const mins = Number(data.pingFrequencyMinutes);
@@ -35,7 +35,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchUserSettings(user.id);
+      fetchUserSettings();
     }
   }, [user?.id, fetchUserSettings]);
 
@@ -60,9 +60,8 @@ export default function SettingsPage() {
       const targetMins = isCustomMode ? Number(customInput) : pingFrequency;
       const res = await fetch('/api/user/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
-          userId: user.id,
           pingFrequencyMinutes: targetMins,
         }),
       });

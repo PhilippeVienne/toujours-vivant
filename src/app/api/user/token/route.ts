@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, supabase, regenerateUserEmergencyToken } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase, regenerateUserEmergencyToken, getAuthenticatedUserId } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { userId } = body;
+    const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
       return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
@@ -16,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     if (!newToken) {
-      newToken = 'tok_' + Math.random().toString(36).substring(2, 12);
+      newToken = 'tok_' + crypto.randomUUID().replace(/-/g, '');
     }
 
     return NextResponse.json({

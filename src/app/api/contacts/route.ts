@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, supabase, fetchUserContacts, addUserContact, deleteUserContact } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase, fetchUserContacts, addUserContact, deleteUserContact, getAuthenticatedUserId } from '@/lib/supabase';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
+  const userId = await getAuthenticatedUserId(request);
 
   if (!userId) {
-    return NextResponse.json({ contacts: [] });
+    return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
   }
 
   if (isSupabaseConfigured && supabase) {
@@ -19,12 +18,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, email, phone, notifyByEmail, userId } = body;
+    const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
       return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
     }
+
+    const body = await request.json();
+    const { name, email, phone, notifyByEmail } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Le nom du proche est requis.' }, { status: 400 });
@@ -50,13 +51,14 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    const userId = searchParams.get('userId');
+    const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
       return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'ID de contact requis.' }, { status: 400 });

@@ -52,11 +52,11 @@ CREATE TABLE IF NOT EXISTS public.alert_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Grants
-GRANT ALL ON TABLE public.users TO authenticated, service_role, anon;
-GRANT ALL ON TABLE public.emergency_contacts TO authenticated, service_role, anon;
-GRANT ALL ON TABLE public.ping_logs TO authenticated, service_role, anon;
-GRANT ALL ON TABLE public.alert_logs TO authenticated, service_role, anon;
+-- Grants (RLS is the real enforcement layer; anon does not need direct table privileges)
+GRANT ALL ON TABLE public.users TO authenticated, service_role;
+GRANT ALL ON TABLE public.emergency_contacts TO authenticated, service_role;
+GRANT ALL ON TABLE public.ping_logs TO authenticated, service_role;
+GRANT ALL ON TABLE public.alert_logs TO authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
 
 -- Row Level Security

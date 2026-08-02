@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Trash2, Mail, Phone, Check, Copy, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { EmergencyContact } from '@/types';
+import { getAuthHeaders } from '@/lib/supabase';
 
 interface ContactsManagerProps {
   initialContacts: EmergencyContact[];
@@ -38,8 +39,8 @@ export function ContactsManager({ initialContacts, onContactsChange, userId, use
     try {
       const res = await fetch('/api/contacts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, name, email: email.trim() || undefined, phone: phone.trim() || undefined, notifyByEmail: Boolean(email.trim() && notifyByEmail) }),
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ name, email: email.trim() || undefined, phone: phone.trim() || undefined, notifyByEmail: Boolean(email.trim() && notifyByEmail) }),
       });
 
       const data = await res.json();
@@ -61,8 +62,7 @@ export function ContactsManager({ initialContacts, onContactsChange, userId, use
 
   const handleRemoveContact = async (id: string) => {
     try {
-      const deleteUrl = userId ? `/api/contacts?id=${id}&userId=${encodeURIComponent(userId)}` : `/api/contacts?id=${id}`;
-      await fetch(deleteUrl, { method: 'DELETE' });
+      await fetch(`/api/contacts?id=${id}`, { method: 'DELETE', headers: await getAuthHeaders() });
       setContacts(prev => prev.filter(c => c.id !== id));
       if (onContactsChange) onContactsChange();
     } catch (err) {

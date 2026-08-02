@@ -5,7 +5,7 @@ import { ContactsManager } from '@/components/ContactsManager';
 import { TokenShareCard } from '@/components/TokenShareCard';
 import { Users, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { EmergencyContact } from '@/types';
-import { signInWithGoogle } from '@/lib/supabase';
+import { signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 
 export default function ContactsPage() {
@@ -14,9 +14,9 @@ export default function ContactsPage() {
   const [token, setToken] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
-  const fetchContacts = useCallback(async (userId: string) => {
+  const fetchContacts = useCallback(async () => {
     try {
-      const res = await fetch(`/api/ping?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch('/api/ping', { headers: await getAuthHeaders() });
       const data = await res.json();
       if (data.contacts) setContacts(data.contacts);
       if (data.user?.emergencyToken) setToken(data.user.emergencyToken);
@@ -27,7 +27,7 @@ export default function ContactsPage() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchContacts(user.id);
+      fetchContacts();
     }
   }, [user?.id, fetchContacts]);
 
@@ -102,7 +102,7 @@ export default function ContactsPage() {
         initialContacts={contacts}
         userId={user.id}
         userEmergencyToken={fallbackToken}
-        onContactsChange={() => fetchContacts(user.id)}
+        onContactsChange={() => fetchContacts()}
       />
 
     </div>

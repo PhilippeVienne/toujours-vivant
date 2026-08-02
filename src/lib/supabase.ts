@@ -80,6 +80,34 @@ export function onAuthStateChange(callback: (user: User | null) => void) {
 }
 
 // -----------------------------------------------------------------------------
+// Client-side helper: attach the current session's access token so API routes
+// can verify the caller's identity server-side instead of trusting body/query params.
+// -----------------------------------------------------------------------------
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (!supabase) return {};
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+// -----------------------------------------------------------------------------
+// Server-side helper: verify the caller's Supabase access token (sent via the
+// Authorization header) and return the authenticated user's id, or null.
+// This must be used instead of trusting a client-supplied userId in API routes.
+// -----------------------------------------------------------------------------
+export async function getAuthenticatedUserId(request: Request): Promise<string | null> {
+  if (!supabase) return null;
+
+  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+
+  const token = authHeader.substring(7);
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) return null;
+
+  return data.user.id;
+}
+
+// -----------------------------------------------------------------------------
 // Data Helpers for Database Tables (users, emergency_contacts, ping_logs)
 // -----------------------------------------------------------------------------
 
@@ -281,7 +309,7 @@ export async function fetchUserByToken(token: string): Promise<UserProfile | nul
 export async function regenerateUserEmergencyToken(userId: string): Promise<string | null> {
   if (!supabase) return null;
 
-  const newToken = 'tok_' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  const newToken = 'tok_' + crypto.randomUUID().replace(/-/g, '');
 
   const { error } = await supabase
     .from('users')

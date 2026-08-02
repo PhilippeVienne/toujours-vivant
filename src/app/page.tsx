@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { ManualPingButton } from '@/components/ManualPingButton';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { CheckInStatusResponse } from '@/types';
-import { signInWithGoogle } from '@/lib/supabase';
+import { signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 import { ShieldCheck, Zap, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -14,10 +14,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<CheckInStatusResponse | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
-  const fetchStatus = useCallback(async (currentUserId: string) => {
+  const fetchStatus = useCallback(async () => {
     try {
-      const url = `/api/ping?userId=${encodeURIComponent(currentUserId)}`;
-      const res = await fetch(url);
+      const res = await fetch('/api/ping', { headers: await getAuthHeaders() });
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -27,9 +26,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchStatus(user.id);
+      fetchStatus();
       const interval = setInterval(() => {
-        fetchStatus(user.id);
+        fetchStatus();
       }, 15000);
       return () => clearInterval(interval);
     }
@@ -152,11 +151,11 @@ export default function DashboardPage() {
       <StatusBadge
         initialStatus={data?.status || 'OK'}
         initialSecondsRemaining={data?.secondsRemaining ?? 1800}
-        onRefresh={() => fetchStatus(user.id)}
+        onRefresh={() => fetchStatus()}
       />
 
       {/* Main 1-Tap Manual Ping Button */}
-      <ManualPingButton onPingSuccess={() => fetchStatus(user.id)} userId={user.id} />
+      <ManualPingButton onPingSuccess={() => fetchStatus()} userId={user.id} />
 
       {/* Bottom Timeline */}
       {data?.latestPings && data.latestPings.length > 0 && (

@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { Heart, MapPin, MessageSquare, Check, Loader2 } from 'lucide-react';
+import { getAuthHeaders } from '@/lib/supabase';
 
 interface ManualPingButtonProps {
   onPingSuccess?: () => void;
   userId?: string;
 }
 
-export function ManualPingButton({ onPingSuccess, userId }: ManualPingButtonProps) {
+export function ManualPingButton({ onPingSuccess }: ManualPingButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
   const [message, setMessage] = useState('');
@@ -48,9 +49,8 @@ export function ManualPingButton({ onPingSuccess, userId }: ManualPingButtonProp
     try {
       const response = await fetch('/api/ping', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
-          userId,
           pingType: 'MANUAL',
           latitude: coords.lat,
           longitude: coords.lng,

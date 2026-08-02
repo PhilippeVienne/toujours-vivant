@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, fetchUserProfile, updateUserPingFrequency } from '@/lib/supabase';
+import { isSupabaseConfigured, fetchUserProfile, updateUserPingFrequency, getAuthenticatedUserId } from '@/lib/supabase';
 import { setUserCheckInTimer } from '@/lib/redis';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
+  const userId = await getAuthenticatedUserId(request);
 
   if (!userId) {
     return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
@@ -24,12 +23,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { userId, pingFrequencyMinutes } = body;
+    const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
       return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
     }
+
+    const body = await request.json();
+    const { pingFrequencyMinutes } = body;
 
     const minutes = Number(pingFrequencyMinutes);
     if (isNaN(minutes) || minutes < 5 || minutes > 1440) {

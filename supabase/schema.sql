@@ -31,9 +31,10 @@ CREATE TABLE IF NOT EXISTS public.emergency_contacts (
 ALTER TABLE public.emergency_contacts ALTER COLUMN email DROP NOT NULL;
 ALTER TABLE public.emergency_contacts ADD COLUMN IF NOT EXISTS contact_token TEXT UNIQUE DEFAULT md5(random()::text || clock_timestamp()::text);
 
--- Grant privileges for Supabase roles (PostgREST)
-GRANT ALL ON TABLE public.users TO authenticated, service_role, anon;
-GRANT ALL ON TABLE public.emergency_contacts TO authenticated, service_role, anon;
+-- Grant privileges for Supabase roles (PostgREST). RLS is the real enforcement
+-- layer; the unauthenticated 'anon' role does not need direct table privileges.
+GRANT ALL ON TABLE public.users TO authenticated, service_role;
+GRANT ALL ON TABLE public.emergency_contacts TO authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
 
 -- 3. Table Historique des Check-ins & Pings
@@ -59,8 +60,8 @@ CREATE TABLE IF NOT EXISTS public.alert_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-GRANT ALL ON TABLE public.ping_logs TO authenticated, service_role, anon;
-GRANT ALL ON TABLE public.alert_logs TO authenticated, service_role, anon;
+GRANT ALL ON TABLE public.ping_logs TO authenticated, service_role;
+GRANT ALL ON TABLE public.alert_logs TO authenticated, service_role;
 
 -- 5. Index de performance
 CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);

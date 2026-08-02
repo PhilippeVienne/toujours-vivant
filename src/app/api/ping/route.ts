@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { setUserCheckInTimer, getUserCheckInTimer } from '@/lib/redis';
-import { isSupabaseConfigured, fetchUserProfile, fetchUserContacts, fetchUserPings, recordUserPing } from '@/lib/supabase';
+import { isSupabaseConfigured, fetchUserProfile, fetchUserContacts, fetchUserPings, recordUserPing, getAuthenticatedUserId } from '@/lib/supabase';
 import { PingType, UserStatus } from '@/types';
 
 function computeRealtimeUserStatus(user: { lastPingAt?: string; pingFrequencyMinutes?: number; status?: UserStatus }) {
@@ -36,12 +36,14 @@ function computeRealtimeUserStatus(user: { lastPingAt?: string; pingFrequencyMin
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const { latitude, longitude, locationName, message, pingType, userId: reqUserId } = body;
+    const reqUserId = await getAuthenticatedUserId(request);
 
     if (!reqUserId) {
       return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
     }
+
+    const body = await request.json().catch(() => ({}));
+    const { latitude, longitude, locationName, message, pingType } = body;
 
     const actualPingType: PingType = pingType || 'MANUAL';
 
@@ -81,8 +83,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const reqUserId = searchParams.get('userId');
+    const reqUserId = await getAuthenticatedUserId(request);
 
     if (!reqUserId) {
       return NextResponse.json({
