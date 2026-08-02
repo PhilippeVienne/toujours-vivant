@@ -205,18 +205,18 @@ export function ContactsManager({ initialContacts, onContactsChange, userId, use
               className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 transition-colors space-y-3"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3.5">
+                <div className="flex items-center gap-3.5 min-w-0">
                   <div className="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold shrink-0">
                     {contact.name.charAt(0)}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
                       <span>{contact.name}</span>
                     </h4>
                     <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
                       {contact.email ? (
-                        <span className="flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="flex items-center gap-1.5 min-w-0 break-all">
+                          <Mail className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                           {contact.email}
                         </span>
                       ) : (

@@ -65,7 +65,7 @@ export function AuthButton() {
               <UserIcon className="w-3.5 h-3.5" />
             </div>
           )}
-          <span className="text-xs font-medium text-slate-200 max-w-[120px] truncate">
+          <span className="hidden sm:inline text-xs font-medium text-slate-200 max-w-[120px] truncate">
             {userName}
           </span>
         </div>

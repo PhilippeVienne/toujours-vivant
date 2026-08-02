@@ -97,8 +97,8 @@ export function ManualPingButton({ onPingSuccess }: ManualPingButtonProps) {
             ) : (
               <>
                 <Heart className="w-16 h-16 sm:w-20 sm:h-20 text-emerald-400 fill-emerald-400/20 drop-shadow-md mb-2 animate-bounce" />
-                <span className="text-xl sm:text-2xl tracking-wider uppercase font-black bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent">
-                  JE VAIS BIEN !
+                <span className="text-lg sm:text-2xl tracking-wide sm:tracking-wider uppercase font-black bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent whitespace-nowrap">
+                  JE VAIS BIEN{' !'}
                 </span>
                 <span className="text-[11px] font-bold text-emerald-400 mt-1 uppercase tracking-widest">
                   1-TAP CHECK-IN

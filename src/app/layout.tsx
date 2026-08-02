@@ -61,7 +61,7 @@ export default function RootLayout({
           {children}
         </main>
 
-        <footer className="border-t border-slate-800/80 bg-[#090d16]/90 py-6 text-center text-xs text-slate-400">
+        <footer className="border-t border-slate-800/80 bg-[#090d16]/90 pt-6 pb-24 sm:pb-6 text-center text-xs text-slate-400">
           <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

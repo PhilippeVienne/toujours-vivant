@@ -29,10 +29,10 @@ export function Navbar() {
             </div>
           </div>
           <div>
-            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <span className="font-extrabold text-base sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
               Toujours Vivant
             </span>
-            <span className="block text-[11px] font-semibold text-emerald-400 tracking-wider uppercase mt-0.5">
+            <span className="hidden sm:block text-[11px] font-semibold text-emerald-400 tracking-wider uppercase mt-0.5">
               Sécurité & Check-in
             </span>
           </div>
@@ -69,28 +69,29 @@ export function Navbar() {
         </div>
 
       </div>
-
-      {/* Mobile Bottom Navigation Bar (Only rendered when logged in) */}
-      {user && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#090d16]/95 backdrop-blur-xl border-t border-slate-800/80 px-3 py-2.5 flex justify-around items-center shadow-2xl">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-xs transition-all ${
-                  isActive ? 'text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-[11px]">{link.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
     </header>
+
+    {/* Mobile Bottom Navigation Bar (Only rendered when logged in) */}
+    {user && (
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#090d16]/95 backdrop-blur-xl border-t border-slate-800/80 px-3 py-2.5 flex justify-around items-center shadow-2xl">
+        {navLinks.map((link) => {
+          const Icon = link.icon;
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-xs transition-all ${
+                isActive ? 'text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[11px]">{link.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    )}
+    </>
   );
 }
