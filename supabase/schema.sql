@@ -66,10 +66,25 @@ CREATE TABLE IF NOT EXISTS public.alert_logs (
 GRANT ALL ON TABLE public.ping_logs TO authenticated, service_role;
 GRANT ALL ON TABLE public.alert_logs TO authenticated, service_role;
 
+-- 4bis. Table des abonnements Web Push (rappels & alertes envoyés directement
+-- à l'appareil de l'utilisateur, en complément des e-mails proches)
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+    endpoint TEXT UNIQUE NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+GRANT ALL ON TABLE public.push_subscriptions TO authenticated, service_role;
+
 -- 5. Index de performance
 CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);
 CREATE INDEX IF NOT EXISTS idx_users_token ON public.emergency_token;
 CREATE INDEX IF NOT EXISTS idx_ping_logs_user_date ON public.ping_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON public.push_subscriptions(user_id);
 
 --------------------------------------------------------------------------------
 -- TRIGGER SUPABASE AUTH : Synchronisation automatique Google Auth -> public.users
@@ -104,6 +119,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.emergency_contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ping_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.alert_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Politiques pour la table 'users'
 DROP POLICY IF EXISTS "Utilisateurs peuvent lire leur propre profil" ON public.users;
@@ -132,4 +148,10 @@ CREATE POLICY "Lecture et insertion propres pings"
 DROP POLICY IF EXISTS "Lecture propres alertes" ON public.alert_logs;
 CREATE POLICY "Lecture propres alertes"
   ON public.alert_logs FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Politiques pour la table 'push_subscriptions'
+DROP POLICY IF EXISTS "Gestion propres abonnements push" ON public.push_subscriptions;
+CREATE POLICY "Gestion propres abonnements push"
+  ON public.push_subscriptions FOR ALL
   USING (auth.uid() = user_id);

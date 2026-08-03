@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { sendEmergencyAlertEmail } from '@/lib/resend';
 import { isSupabaseConfigured, supabase, supabaseAdmin } from '@/lib/supabase';
 import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
+import { sendPushToUser } from '@/lib/webpush';
+import { redis } from '@/lib/redis';
 
 export async function GET(request: Request) {
   return handleCheckAlerts(request);
@@ -50,6 +52,21 @@ async function handleCheckAlerts(request: Request) {
 
           const isExpired = realtimeStatus === 'ALERT';
 
+          // Pre-alert push reminder sent once per warning window (deduped via
+          // Redis so repeated cron ticks don't spam the device); cleared on the
+          // next successful ping (see /api/ping) so it can fire again later.
+          if (realtimeStatus === 'WARNING') {
+            const warnedKey = `user:${u.id}:warned`;
+            const alreadyWarned = redis ? await redis.get(warnedKey) : false;
+            if (!alreadyWarned) {
+              await sendPushToUser(u.id, {
+                title: 'Toujours Vivant • Check-in requis',
+                body: 'Il vous reste moins de 5 minutes avant le déclenchement de l\'alerte à vos proches.',
+              });
+              if (redis) await redis.set(warnedKey, '1', { ex: pingFreq * 60 });
+            }
+          }
+
           if (isExpired && u.status !== 'ALERT') {
             // Fetch user's emergency contacts who opted for email notifications
             const { data: contacts } = await client
@@ -81,6 +98,13 @@ async function handleCheckAlerts(request: Request) {
                 status: emailResult.success ? 'SENT' : 'FAILED',
               });
             }
+
+            // Notify the user's own devices that the alert fired (they may still be
+            // able to check in and abort it before the recipients act on it).
+            await sendPushToUser(u.id, {
+              title: 'Toujours Vivant • Alerte déclenchée',
+              body: 'Aucun check-in détecté : vos proches viennent d\'être notifiés. Faites un check-in dès que possible.',
+            });
 
             // Update user status to ALERT in database (clears any stale offline pause)
             await client.from('users').update({ status: 'ALERT', offline_until: null }).eq('id', u.id);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { setUserCheckInTimer, getUserCheckInTimer } from '@/lib/redis';
+import { setUserCheckInTimer, getUserCheckInTimer, redis } from '@/lib/redis';
 import { isSupabaseConfigured, fetchUserProfile, fetchUserContacts, fetchUserPings, recordUserPing, getAuthenticatedUserId } from '@/lib/supabase';
 import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
 import { formatDurationMinutes } from '@/lib/formatTime';
@@ -29,8 +29,10 @@ export async function POST(request: Request) {
 
     const ttlSeconds = pingFrequencyMinutes * 60;
 
-    // 2. Set Upstash Redis timer key
+    // 2. Set Upstash Redis timer key, and clear the pre-alert push dedupe flag
+    // (see /api/check-alerts) so a future WARNING window can trigger a reminder again.
     await setUserCheckInTimer(reqUserId, ttlSeconds);
+    if (redis) await redis.del(`user:${reqUserId}:warned`);
 
     // 3. Save Ping in database
     let pingLog = null;

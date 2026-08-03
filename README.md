@@ -115,7 +115,31 @@ RESEND_API_KEY=re_123456789...
 
 # Clé Secrète pour la tâche Cron d'Alerte (Optionnel mais recommandé)
 CRON_SECRET=votre_cle_secrete_ultra_longue
+
+# Notifications Push (Web Push / VAPID) - rappels de pré-alerte & alertes envoyées
+# directement sur l'appareil de l'utilisateur, en plus des e-mails aux proches
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=BJ...
+VAPID_PRIVATE_KEY=uJ...
+VAPID_SUBJECT=mailto:contact@votre-domaine.fr
 ```
+
+---
+
+### 6bis. Notifications Push (Web Push)
+
+L'application peut envoyer des notifications push directement sur l'appareil de l'utilisateur (et non plus seulement des e-mails à ses proches) :
+
+- **5 minutes avant l'échéance** : rappel "Check-in requis" pour éviter une fausse alerte.
+- **Au déclenchement de l'alerte** : confirmation que les proches viennent d'être notifiés.
+
+1. Générez une paire de clés VAPID :
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+2. Renseignez `NEXT_PUBLIC_VAPID_PUBLIC_KEY` et `VAPID_PRIVATE_KEY` dans `.env.local` (et sur Vercel).
+3. Appliquez la migration `supabase/migrations/20260802020000_push_subscriptions.sql` (ou re-exécutez `supabase/schema.sql`) pour créer la table `push_subscriptions`.
+4. Dans la page **Réglages** de l'application, activez le toggle "Rappels de pré-alerte (Push & Son)" pour vous abonner depuis l'appareil courant. Sans clé VAPID configurée, le toggle reste désactivé et les envois passent en mode simulation (log serveur uniquement).
+5. Ces rappels dépendent du même cron que les alertes e-mail (`/api/check-alerts`, voir section 8) : ils ne peuvent se déclencher que si ce endpoint est appelé plus fréquemment que la fenêtre de pré-alerte de 5 minutes.
 
 ---
 

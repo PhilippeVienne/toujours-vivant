@@ -475,6 +475,52 @@ export async function recordUserPing(
   };
 }
 
+// -----------------------------------------------------------------------------
+// Push Notification Subscriptions (Web Push)
+// -----------------------------------------------------------------------------
+
+export async function saveUserPushSubscription(
+  userId: string,
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  userAgent?: string
+): Promise<boolean> {
+  const client = supabaseAdmin || supabase;
+  if (!client) return false;
+
+  const { error } = await client
+    .from('push_subscriptions')
+    .upsert(
+      {
+        user_id: userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        user_agent: userAgent || null,
+      },
+      { onConflict: 'endpoint' }
+    );
+
+  if (error) {
+    console.error('Erreur lors de l\'enregistrement de l\'abonnement push:', error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function deleteUserPushSubscription(userId: string, endpoint: string): Promise<boolean> {
+  const client = supabaseAdmin || supabase;
+  if (!client) return false;
+
+  const { error } = await client
+    .from('push_subscriptions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('endpoint', endpoint);
+
+  return !error;
+}
+
 export async function fetchUserPings(userId: string): Promise<PingLog[]> {
   const client = supabaseAdmin || supabase;
   if (!client) return [];

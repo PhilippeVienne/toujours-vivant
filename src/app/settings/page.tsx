@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Clock, MapPin, Bell, ShieldCheck, User as UserIcon, LogOut, Check, ArrowRight, Loader2, Sliders } from 'lucide-react';
+import { Settings, Clock, MapPin, Bell, BellOff, ShieldCheck, User as UserIcon, LogOut, Check, ArrowRight, Loader2, Sliders } from 'lucide-react';
 import { signOutUser, signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
+import { usePushNotifications } from '@/lib/usePushNotifications';
 import { formatDurationMinutes } from '@/lib/formatTime';
 
 export default function SettingsPage() {
@@ -13,7 +14,7 @@ export default function SettingsPage() {
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [customInput, setCustomInput] = useState<string>('720');
   const [attachLocation, setAttachLocation] = useState<boolean>(true);
-  const [pushReminder, setPushReminder] = useState<boolean>(true);
+  const { supportState: pushSupportState, subscribed: pushSubscribed, loading: pushLoading, subscribe: subscribePush, unsubscribe: unsubscribePush } = usePushNotifications();
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -302,16 +303,27 @@ export default function SettingsPage() {
         {/* Push Notification Toggle */}
         <div className="flex items-center justify-between gap-4 border-t border-slate-800/80 pt-4">
           <div className="flex items-start gap-3">
-            <Bell className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+            {pushSubscribed ? (
+              <Bell className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+            ) : (
+              <BellOff className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+            )}
             <div>
               <p className="text-xs font-bold text-slate-200">Rappels de pré-alerte (Push & Son)</p>
-              <p className="text-[11px] text-slate-400">Envoie une notification 5 minutes avant l'échéance pour éviter les fausses alertes.</p>
+              <p className="text-[11px] text-slate-400">
+                {pushSupportState === 'unsupported'
+                  ? "Non disponible sur ce navigateur/appareil."
+                  : pushSupportState === 'unconfigured'
+                  ? 'Non configuré côté serveur (clé VAPID manquante).'
+                  : "Envoie une notification sur cet appareil 5 minutes avant l'échéance, et lors du déclenchement d'une alerte."}
+              </p>
             </div>
           </div>
           <button
-            onClick={() => setPushReminder(!pushReminder)}
-            className={`w-12 h-6 rounded-full transition-colors p-1 flex items-center ${
-              pushReminder ? 'bg-emerald-500 justify-end' : 'bg-slate-800 justify-start'
+            onClick={() => (pushSubscribed ? unsubscribePush() : subscribePush())}
+            disabled={pushSupportState !== 'ready' || pushLoading}
+            className={`w-12 h-6 rounded-full transition-colors p-1 flex items-center disabled:opacity-40 disabled:cursor-not-allowed ${
+              pushSubscribed ? 'bg-emerald-500 justify-end' : 'bg-slate-800 justify-start'
             }`}
           >
             <div className="w-4 h-4 rounded-full bg-white shadow-md" />
