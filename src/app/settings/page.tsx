@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [customInput, setCustomInput] = useState<string>('720');
   const [attachLocation, setAttachLocation] = useState<boolean>(true);
-  const { supportState: pushSupportState, subscribed: pushSubscribed, loading: pushLoading, subscribe: subscribePush, unsubscribe: unsubscribePush } = usePushNotifications();
+  const { supportState: pushSupportState, pushConfigured, subscribed: pushSubscribed, loading: pushLoading, subscribe: subscribePush, unsubscribe: unsubscribePush } = usePushNotifications();
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -306,10 +306,10 @@ export default function SettingsPage() {
               <p className="text-xs font-bold text-slate-200">Rappels de pré-alerte (Push & Son)</p>
               <p className="text-[11px] text-slate-400">
                 {pushSupportState === 'unsupported'
-                  ? "Non disponible sur ce navigateur/appareil."
-                  : pushSupportState === 'unconfigured'
-                  ? 'Non configuré côté serveur (clé VAPID manquante).'
-                  : "Envoie une notification sur cet appareil 5 minutes avant l'échéance, et lors du déclenchement d'une alerte."}
+                  ? 'Non disponible sur ce navigateur/appareil.'
+                  : pushConfigured
+                  ? "Notification sur cet appareil 5 minutes avant l'échéance, et lors du déclenchement d'une alerte — même si l'app est fermée."
+                  : "Rappel local sur cet appareil 5 minutes avant l'échéance. Fonctionne uniquement pendant que l'app est ouverte (pas de serveur push configuré)."}
               </p>
             </div>
           </div>

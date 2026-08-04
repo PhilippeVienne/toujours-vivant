@@ -1,38 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Download, Smartphone } from 'lucide-react';
+import { usePwaInstall } from '@/lib/usePwaInstall';
 
 export function FooterInstallPwa() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-
-  useEffect(() => {
-    // Check if running as standalone PWA
-    if (typeof window !== 'undefined') {
-      const isPwa = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-      setIsStandalone(Boolean(isPwa));
-    }
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+  const { isStandalone, isInstallable, promptInstall } = usePwaInstall();
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstallable(false);
-      }
-      setDeferredPrompt(null);
+    if (isInstallable) {
+      await promptInstall();
     } else {
       alert("Pour installer l'application PWA :\n\n• Sur Android / Chrome : Cliquez sur les 3 points en haut à droite > 'Ajouter à l'écran d'accueil'.\n• Sur iPhone / Safari : Cliquez sur le bouton de partage > 'Sur l'écran d'accueil'.");
     }

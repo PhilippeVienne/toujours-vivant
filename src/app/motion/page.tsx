@@ -42,6 +42,12 @@ export default function MotionPage() {
           <li className="flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>
+              <strong>Réservé à l&apos;application installée :</strong> un onglet de navigateur classique peut être fermé à tout moment, donc les check-in automatiques réels ne fonctionnent qu&apos;une fois l&apos;app installée sur l&apos;écran d&apos;accueil. Sans installation, cette page reste en mode démo.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <span>
               <strong>Un vrai check-in reste toujours préférable :</strong> la détection automatique est un complément pratique, mais le tap manuel matin/soir reste le moyen le plus fiable de rassurer vos proches.
             </span>
           </li>

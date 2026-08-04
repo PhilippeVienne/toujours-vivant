@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { FooterInstallPwa } from '@/components/FooterInstallPwa';
 import { TermsAcceptanceModal } from '@/components/TermsAcceptanceModal';
+import { LocalReminderNotifier } from '@/components/LocalReminderNotifier';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -56,6 +57,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-full bg-[#090d16] text-slate-100 flex flex-col antialiased selection:bg-emerald-500 selection:text-white`}>
         <ServiceWorkerRegister />
         <TermsAcceptanceModal />
+        <LocalReminderNotifier />
         <Navbar />
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-12">
           {children}
