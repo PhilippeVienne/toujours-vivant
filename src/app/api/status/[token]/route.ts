@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, fetchUserByToken, fetchContactByIdOrToken, fetchUserPings } from '@/lib/supabase';
+import { isDbConfigured, fetchUserByToken, fetchContactByIdOrToken, fetchUserPings } from '@/lib/db';
 import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
 
 export async function GET(
@@ -12,7 +12,7 @@ export async function GET(
     return NextResponse.json({ error: 'Jeton de consultation invalide.' }, { status: 404 });
   }
 
-  if (isSupabaseConfigured) {
+  if (isDbConfigured) {
     // 1. First check if token is a Contact UUID or Contact Token
     const contactResult = await fetchContactByIdOrToken(token);
     if (contactResult) {

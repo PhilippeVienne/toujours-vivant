@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Heart, MapPin, MessageSquare, Check, Loader2 } from 'lucide-react';
-import { getAuthHeaders } from '@/lib/supabase';
 
 interface ManualPingButtonProps {
   onPingSuccess?: () => void;
@@ -49,7 +48,7 @@ export function ManualPingButton({ onPingSuccess }: ManualPingButtonProps) {
     try {
       const response = await fetch('/api/ping', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pingType: 'MANUAL',
           latitude: coords.lat,

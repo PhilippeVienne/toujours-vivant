@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Settings, Clock, MapPin, Bell, BellOff, ShieldCheck, User as UserIcon, LogOut, Check, ArrowRight, Loader2, Sliders } from 'lucide-react';
-import { signOutUser, signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 import { usePushNotifications } from '@/lib/usePushNotifications';
 import { formatDurationMinutes } from '@/lib/formatTime';
@@ -21,7 +20,7 @@ export default function SettingsPage() {
 
   const fetchUserSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/user/settings', { headers: await getAuthHeaders() });
+      const res = await fetch('/api/user/settings');
       const data = await res.json();
       if (data.pingFrequencyMinutes) {
         const mins = Number(data.pingFrequencyMinutes);
@@ -65,7 +64,7 @@ export default function SettingsPage() {
       const targetMins = isCustomMode ? Number(customInput) : pingFrequency;
       const res = await fetch('/api/user/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pingFrequencyMinutes: targetMins,
         }),
@@ -85,18 +84,13 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    await signOutUser();
+    await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
   };
 
-  const handleLogin = async () => {
-    try {
-      setSigningIn(true);
-      await signInWithGoogle();
-    } catch (err) {
-      console.error(err);
-      setSigningIn(false);
-    }
+  const handleLogin = () => {
+    setSigningIn(true);
+    window.location.href = '/api/auth/google';
   };
 
   if (authLoading) {

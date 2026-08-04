@@ -1,38 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  signInWithGoogle, 
-  signOutUser, 
-  isSupabaseConfigured 
-} from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
-import { LogOut, User as UserIcon, AlertCircle, Loader2 } from 'lucide-react';
+import { LogOut, User as UserIcon, Loader2 } from 'lucide-react';
 
 export function AuthButton() {
   const { user, loading, setUser } = useAuthSession();
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showConfigNotice, setShowConfigNotice] = useState(false);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setAuthError(null);
-    if (!isSupabaseConfigured) {
-      setShowConfigNotice(true);
-      return;
-    }
-
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setAuthError(err?.message || 'Échec de l\'authentification Google.');
-    }
+    window.location.href = '/api/auth/google';
   };
 
   const handleSignOut = async () => {
     try {
-      await signOutUser();
+      await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
-    } catch (err: any) {
+    } catch {
       setAuthError('Erreur de déconnexion.');
     }
   };
@@ -109,41 +94,6 @@ export function AuthButton() {
         </svg>
         <span>Connexion Google</span>
       </button>
-
-      {/* Config requirement notice modal/popover */}
-      {showConfigNotice && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-start gap-3 text-amber-400">
-              <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-base font-bold text-slate-100">Configuration Supabase Requise</h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  L'authentification Google s'appuie sur le service Supabase Auth. Pour l'activer, vous devez spécifier vos identifiants dans le fichier <code className="bg-slate-800 px-1.5 py-0.5 rounded text-emerald-400 text-[11px]">.env.local</code>.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-slate-900/90 rounded-xl p-3 text-[11px] font-mono text-slate-300 border border-slate-800 space-y-1">
-              <div>NEXT_PUBLIC_SUPABASE_URL=https://votre-projet.supabase.co</div>
-              <div>NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...</div>
-            </div>
-
-            <div className="text-xs text-slate-400 leading-relaxed">
-              Ensuite, activez le fournisseur <strong>Google</strong> dans le tableau de bord Supabase (<em>Authentication &gt; Providers</em>).
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setShowConfigNotice(false)}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs transition-colors"
-              >
-                Compris
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {authError && (
         <div className="mt-1 text-[11px] text-rose-400 font-medium">

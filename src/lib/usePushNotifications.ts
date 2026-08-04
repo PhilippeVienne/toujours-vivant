@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { getAuthHeaders } from './supabase';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 
@@ -55,7 +54,7 @@ export function usePushNotifications() {
 
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: subscription.toJSON() }),
       });
 
@@ -81,7 +80,7 @@ export function usePushNotifications() {
         await subscription.unsubscribe();
         await fetch('/api/push/subscribe', {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ endpoint }),
         });
       }

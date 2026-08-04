@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, fetchUserProfile, updateUserOfflineStatus, getAuthenticatedUserId } from '@/lib/supabase';
+import { isDbConfigured, fetchUserProfile, updateUserOfflineStatus, getAuthenticatedUserId } from '@/lib/db';
 import { setUserCheckInTimer } from '@/lib/redis';
 
 // Activates "hors réseau" mode: alerts are suspended until the chosen duration elapses.
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     const offlineUntil = new Date(Date.now() + durationHours * 3600 * 1000).toISOString();
 
-    if (isSupabaseConfigured) {
+    if (isDbConfigured) {
       const updated = await updateUserOfflineStatus(userId, offlineUntil);
       if (!updated) {
         return NextResponse.json({ error: 'Erreur lors de l\'activation du mode hors-réseau.' }, { status: 500 });
@@ -47,7 +47,7 @@ export async function DELETE(request: Request) {
 
     let pingFrequencyMinutes = 720;
 
-    if (isSupabaseConfigured) {
+    if (isDbConfigured) {
       const updated = await updateUserOfflineStatus(userId, null);
       if (!updated) {
         return NextResponse.json({ error: 'Erreur lors de la réactivation.' }, { status: 500 });

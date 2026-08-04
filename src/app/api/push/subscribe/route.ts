@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthenticatedUserId, saveUserPushSubscription, deleteUserPushSubscription } from '@/lib/supabase';
+import { getAuthenticatedUserId, saveUserPushSubscription, deleteUserPushSubscription } from '@/lib/db';
 
 export async function POST(request: Request) {
   const userId = await getAuthenticatedUserId(request);

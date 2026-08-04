@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useDeviceMotion } from '@/lib/useDeviceMotion';
 import { Activity, Smartphone, MousePointer, Shield, Zap } from 'lucide-react';
-import { getAuthHeaders } from '@/lib/supabase';
 
 export function PassiveMotionWidget() {
   const [sensitivity] = useState(14.0);
@@ -12,7 +11,7 @@ export function PassiveMotionWidget() {
     try {
       await fetch('/api/ping', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pingType: 'PASSIVE_MOTION',
           message: 'Ping automatique validé par détection de mouvement (Accéléromètre / Souris)',

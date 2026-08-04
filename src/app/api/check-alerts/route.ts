@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendEmergencyAlertEmail } from '@/lib/resend';
-import { isSupabaseConfigured, supabase, supabaseAdmin } from '@/lib/supabase';
+import { isDbConfigured, sql } from '@/lib/db';
 import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
 import { sendPushToUser } from '@/lib/webpush';
 import { redis } from '@/lib/redis';
@@ -24,15 +24,14 @@ async function handleCheckAlerts(request: Request) {
       }
     }
 
-    const client = supabaseAdmin || supabase;
     let alertsProcessedCount = 0;
     const alertDetails: any[] = [];
 
-    // 2. Query all registered users from Supabase DB
-    if (isSupabaseConfigured && client) {
-      const { data: users, error } = await client.from('users').select('*');
+    // 2. Query all registered users from the DB
+    if (isDbConfigured && sql) {
+      const users = await sql`select * from users`;
 
-      if (!error && users && users.length > 0) {
+      if (users.length > 0) {
         const appHost = request.headers.get('host') || 'toujours-vivant.fr';
         const protocol = appHost.includes('localhost') ? 'http' : 'https';
 
@@ -69,13 +68,11 @@ async function handleCheckAlerts(request: Request) {
 
           if (isExpired && u.status !== 'ALERT') {
             // Fetch user's emergency contacts who opted for email notifications
-            const { data: contacts } = await client
-              .from('emergency_contacts')
-              .select('*')
-              .eq('user_id', u.id)
-              .eq('notify_by_email', true);
+            const contacts = await sql`
+              select * from emergency_contacts where user_id = ${u.id} and notify_by_email = true
+            `;
 
-            const recipientEmails = (contacts || [])
+            const recipientEmails = contacts
               .map((c: any) => c.email)
               .filter((e: string | null): e is string => Boolean(e && e.includes('@')));
 
@@ -91,12 +88,10 @@ async function handleCheckAlerts(request: Request) {
               });
 
               // Log alert entry in database
-              await client.from('alert_logs').insert({
-                user_id: u.id,
-                trigger_reason: `CHECKIN_EXPIRED_${pingFreq}M`,
-                sent_to_emails: recipientEmails,
-                status: emailResult.success ? 'SENT' : 'FAILED',
-              });
+              await sql`
+                insert into alert_logs (user_id, trigger_reason, sent_to_emails, status)
+                values (${u.id}, ${`CHECKIN_EXPIRED_${pingFreq}M`}, ${recipientEmails}, ${emailResult.success ? 'SENT' : 'FAILED'})
+              `;
             }
 
             // Notify the user's own devices that the alert fired (they may still be
@@ -107,7 +102,7 @@ async function handleCheckAlerts(request: Request) {
             });
 
             // Update user status to ALERT in database (clears any stale offline pause)
-            await client.from('users').update({ status: 'ALERT', offline_until: null }).eq('id', u.id);
+            await sql`update users set status = 'ALERT', offline_until = null where id = ${u.id}`;
             alertsProcessedCount++;
             alertDetails.push({ userId: u.id, recipientEmails, emailResult });
           }

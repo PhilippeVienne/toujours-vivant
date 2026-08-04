@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, fetchUserProfile, updateUserPingFrequency, getAuthenticatedUserId } from '@/lib/supabase';
+import { isDbConfigured, fetchUserProfile, updateUserPingFrequency, getAuthenticatedUserId } from '@/lib/db';
 import { setUserCheckInTimer } from '@/lib/redis';
 import { formatDurationMinutes } from '@/lib/formatTime';
 
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
   }
 
-  if (isSupabaseConfigured) {
+  if (isDbConfigured) {
     const user = await fetchUserProfile(userId);
     if (user) {
       return NextResponse.json({
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Le délai doit être compris entre 5 et 1440 minutes.' }, { status: 400 });
     }
 
-    if (isSupabaseConfigured) {
+    if (isDbConfigured) {
       const updated = await updateUserPingFrequency(userId, minutes);
       if (!updated) {
         return NextResponse.json({ error: 'Erreur lors de la mise à jour des paramètres.' }, { status: 500 });

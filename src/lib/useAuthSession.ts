@@ -1,35 +1,37 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
-import { getUserSession, onAuthStateChange } from '@/lib/supabase';
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  user_metadata?: {
+    full_name?: string;
+    avatar_url?: string | null;
+  };
+}
 
 export function useAuthSession() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Check session on mount
-    getUserSession().then((u) => {
-      if (isMounted) {
-        setUser(u);
-        setLoading(false);
-      }
-    });
-
-    // Subscribe to auth state changes (e.g. INITIAL_SESSION, SIGNED_IN, SIGNED_OUT)
-    const unsubscribe = onAuthStateChange((u) => {
-      if (isMounted) {
-        setUser(u);
-        setLoading(false);
-      }
-    });
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted) setUser(data.user ?? null);
+      })
+      .catch(() => {
+        if (isMounted) setUser(null);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
 
     return () => {
       isMounted = false;
-      unsubscribe();
     };
   }, []);
 

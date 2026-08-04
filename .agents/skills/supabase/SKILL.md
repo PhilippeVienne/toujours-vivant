@@ -1,32 +1,38 @@
 ---
 name: supabase
-description: Use whenever touching Supabase in this project — auth, database schema/migrations, RLS policies, or the client in src/lib/supabase.ts. Covers this project's specific setup (PKCE Google OAuth, service-role admin client, RLS-first security model).
+description: Use whenever touching the database in this project — schema/migrations, or the Postgres client in src/lib/db.ts. Supabase here is just Postgres hosting; there is no Supabase Auth, RLS, or JS SDK involved.
 ---
 
-# Supabase in this project
+# Database in this project
 
-Supabase provides Postgres, Auth, and RLS for this app. There is no self-hosted Supabase — it's the hosted service, configured via env vars.
+Postgres is hosted on Supabase, but the app talks to it **directly** (via [`postgres`](https://github.com/porsager/postgres) / `postgres.js`) — no Supabase Auth, no PostgREST, no RLS, no `@supabase/supabase-js`. Authentication is a separate, self-hosted Google OAuth flow (see the `vercel:auth`-adjacent code in `src/lib/googleOAuth.ts` and `src/lib/session.ts` — not a skill topic, just app code).
 
-## Client setup (`src/lib/supabase.ts`)
+## Client setup (`src/lib/db.ts`)
 
-- `supabase` — public client using `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`, PKCE flow, session persistence. Use this for anything running in the browser or on behalf of a logged-in user.
-- `supabaseAdmin` — service-role client using `SUPABASE_SERVICE_ROLE_KEY`. **Server-only** (API routes). Bypasses RLS — only use it where RLS bypass is actually required (e.g. cron jobs, admin operations), never expose it to client code.
-- `isSupabaseConfigured` — guards against running with placeholder/example env values. Both clients are `null` if not configured; always check before use, following the existing pattern (`if (!supabase) throw new Error(...)`).
-- Auth: Google OAuth via `signInWithGoogle()`, redirect to `/auth/callback`.
+- `sql` — the single module-scope `postgres.js` client, built from `DATABASE_URL`. `null` if not configured (`isDbConfigured` guards this, following the existing pattern used throughout the file).
+- `getAuthenticatedUserId()` — reads the session cookie (see `src/lib/session.ts`), **not** a Postgres concern but lives here for historical/import-convenience reasons.
+- Since there's no RLS, every query function in this file is the actual security boundary — always filter explicitly by `user_id` (or equivalent) rather than trusting a client-supplied id blindly. Never build query strings by concatenation; always use `sql` tagged templates so values are parameterized.
 
 ## Schema & migrations
 
-- Canonical schema: `supabase/schema.sql` — this is what a fresh project runs via the Supabase SQL Editor (see `README.md` section 3).
-- Incremental changes go in `supabase/migrations/YYYYMMDDHHMMSS_description.sql`. Existing examples:
-  - `20260801000000_init.sql`
-  - `20260802000000_revoke_anon_grants.sql`
-- When adding a migration, also update `supabase/schema.sql` to stay the source of truth for fresh installs, unless the two are meant to diverge (check recent git history first).
+- Migration tool: **node-pg-migrate**, config-free (reads `DATABASE_URL`, migration dir defaults to `migrations/`).
+  - `npm run db:migrate` — apply pending migrations (loads `.env.local` via `--envPath`).
+  - `npm run db:migrate:create <name>` — scaffold a new `-- Up Migration` / `-- Down Migration` SQL file in `migrations/`.
+  - `npm run db:migrate:down` — roll back the last migration.
+- `migrations/` is the live source of truth. `supabase/migrations/*.sql` is a **frozen historical record** of what was run by hand via the Supabase CLI before this tooling existed — do not add new files there (see `supabase/migrations/README.md`).
+- Migrations must stay idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, etc.) — they run unattended on every Production deploy (see `scripts/migrate-build.js`, wired into `npm run build` / `vercel.json`'s `buildCommand`), and the same files also bootstrap a fresh local Postgres from empty.
+- UUIDs use the built-in `gen_random_uuid()` (Postgres 13+) — not the `uuid-ossp` extension, so schema setup needs nothing beyond a stock Postgres image.
 
-## Row Level Security
+## Local development
 
-This project is **RLS-first**: `users`, `emergency_contacts`, and `ping_logs` all have RLS enabled (see README section 3, step 4). Any new table holding user data must:
-1. Have RLS enabled.
-2. Have explicit policies scoping rows to `auth.uid()` (or the appropriate owner column).
-3. Avoid relying on `supabaseAdmin` to work around missing policies from client code — fix the policy instead, and only use the admin client server-side where bypass is intentional.
+`docker-compose.yml` runs a local Postgres on `localhost:5432`, fully separate from production. Standard loop:
+```bash
+docker-compose up -d
+npm run db:migrate
+npm run dev
+```
+`.env.local`'s `DATABASE_URL` points here by default. The production connection string (Vercel-only) is commented out at the top of `.env.local` for occasional manual use — don't point local dev at it.
 
-Before writing new queries or policies, read `supabase/schema.sql` and the migrations directory to see current table shapes and existing policy patterns rather than guessing.
+## Auto-migration on deploy
+
+`npm run build` runs `scripts/migrate-build.js` first. On Vercel, it skips itself unless `VERCEL_ENV === 'production'` — Preview deployments currently share the Production `DATABASE_URL` (see README), and auto-migrating from an unreviewed PR branch would be able to mutate the prod schema before merge. Use `npm run db:migrate` (with `DATABASE_URL` pointed at whatever you intend) to migrate deliberately outside that guarded path.

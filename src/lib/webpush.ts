@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { supabaseAdmin, supabase } from './supabase';
+import { sql } from './db';
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -35,15 +35,14 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
     return { sent: 0, mock: true };
   }
 
-  const client = supabaseAdmin || supabase;
+  const client = sql;
   if (!client) return { sent: 0 };
 
-  const { data: subscriptions } = await client
-    .from('push_subscriptions')
-    .select('id, endpoint, p256dh, auth')
-    .eq('user_id', userId);
+  const subscriptions = await client<PushSubscriptionRow[]>`
+    select id, endpoint, p256dh, auth from push_subscriptions where user_id = ${userId}
+  `;
 
-  if (!subscriptions || subscriptions.length === 0) return { sent: 0 };
+  if (subscriptions.length === 0) return { sent: 0 };
 
   const body = JSON.stringify({
     title: payload.title,
@@ -53,7 +52,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
 
   let sent = 0;
   await Promise.all(
-    (subscriptions as PushSubscriptionRow[]).map(async (sub) => {
+    subscriptions.map(async (sub) => {
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
@@ -64,7 +63,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
         const statusCode = (error as { statusCode?: number })?.statusCode;
         // 404/410 = the browser has unsubscribed or the endpoint expired; drop it.
         if (statusCode === 404 || statusCode === 410) {
-          await client.from('push_subscriptions').delete().eq('id', sub.id);
+          await client`delete from push_subscriptions where id = ${sub.id}`;
         } else {
           console.error(`Erreur d'envoi push (subscription ${sub.id}):`, error);
         }

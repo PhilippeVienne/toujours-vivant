@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Plane, PlaneLanding, Loader2, Check } from 'lucide-react';
-import { getAuthHeaders } from '@/lib/supabase';
 import { UserStatus } from '@/types';
 
 interface OfflineToggleProps {
@@ -29,7 +28,7 @@ export function OfflineToggle({ status, offlineUntil, onChange }: OfflineToggleP
     try {
       await fetch('/api/user/offline', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ durationHours: hours }),
       });
       setShowPicker(false);
@@ -44,10 +43,7 @@ export function OfflineToggle({ status, offlineUntil, onChange }: OfflineToggleP
   const resumeOnline = async () => {
     setLoading(true);
     try {
-      await fetch('/api/user/offline', {
-        method: 'DELETE',
-        headers: await getAuthHeaders(),
-      });
+      await fetch('/api/user/offline', { method: 'DELETE' });
       onChange?.();
     } catch (err) {
       console.error('Offline resume error:', err);

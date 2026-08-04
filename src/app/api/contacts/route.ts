@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, supabase, fetchUserContacts, addUserContact, deleteUserContact, getAuthenticatedUserId } from '@/lib/supabase';
+import { isDbConfigured, fetchUserContacts, addUserContact, deleteUserContact, getAuthenticatedUserId } from '@/lib/db';
 
 export async function GET(request: Request) {
   const userId = await getAuthenticatedUserId(request);
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 });
   }
 
-  if (isSupabaseConfigured && supabase) {
+  if (isDbConfigured) {
     const dbContacts = await fetchUserContacts(userId);
     return NextResponse.json({ contacts: dbContacts });
   }
@@ -31,13 +31,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Le nom du proche est requis.' }, { status: 400 });
     }
 
-    if (isSupabaseConfigured && supabase) {
+    if (isDbConfigured) {
       const dbContact = await addUserContact(userId, { name, email, phone, notifyByEmail });
       if (dbContact) {
         return NextResponse.json({ success: true, contact: dbContact });
       } else {
         return NextResponse.json({
-          error: "La table 'emergency_contacts' n'est pas encore créée dans votre base Supabase. Veuillez exécuter le script SQL (schema.sql) dans votre console Supabase."
+          error: "La table 'emergency_contacts' n'est pas encore créée. Veuillez exécuter le script SQL (schema.sql) sur votre base Postgres."
         }, { status: 500 });
       }
     }
@@ -64,7 +64,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID de contact requis.' }, { status: 400 });
     }
 
-    if (isSupabaseConfigured && supabase) {
+    if (isDbConfigured) {
       const success = await deleteUserContact(id, userId);
       return NextResponse.json({ success });
     }

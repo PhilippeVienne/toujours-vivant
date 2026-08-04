@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { setUserCheckInTimer, getUserCheckInTimer, redis } from '@/lib/redis';
-import { isSupabaseConfigured, fetchUserProfile, fetchUserContacts, fetchUserPings, recordUserPing, getAuthenticatedUserId } from '@/lib/supabase';
+import { isDbConfigured, fetchUserProfile, fetchUserContacts, fetchUserPings, recordUserPing, getAuthenticatedUserId } from '@/lib/db';
 import { computeRealtimeUserStatus } from '@/lib/checkInStatus';
 import { formatDurationMinutes } from '@/lib/formatTime';
 import { PingType } from '@/types';
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     // 1. Fetch user's custom ping frequency (default 720 min / 12h, twice-daily check-in)
     let pingFrequencyMinutes = 720;
-    if (isSupabaseConfigured) {
+    if (isDbConfigured) {
       const userProfile = await fetchUserProfile(reqUserId);
       if (userProfile?.pingFrequencyMinutes) {
         pingFrequencyMinutes = userProfile.pingFrequencyMinutes;
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     // 3. Save Ping in database
     let pingLog = null;
-    if (isSupabaseConfigured) {
+    if (isDbConfigured) {
       pingLog = await recordUserPing(reqUserId, actualPingType, locationName, latitude, longitude, message);
     }
 
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     let contacts: any[] = [];
     let latestPings: any[] = [];
 
-    if (isSupabaseConfigured) {
+    if (isDbConfigured) {
       const dbUser = await fetchUserProfile(reqUserId);
       if (dbUser) {
         user = dbUser;

@@ -6,7 +6,6 @@ import { ManualPingButton } from '@/components/ManualPingButton';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { OfflineToggle } from '@/components/OfflineToggle';
 import { CheckInStatusResponse } from '@/types';
-import { signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 import { ShieldCheck, Zap, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -40,7 +39,7 @@ export default function DashboardPage() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/ping', { headers: await getAuthHeaders() });
+      const res = await fetch('/api/ping');
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -60,14 +59,9 @@ export default function DashboardPage() {
     }
   }, [user?.id, fetchStatus]);
 
-  const handleLogin = async () => {
-    try {
-      setSigningIn(true);
-      await signInWithGoogle();
-    } catch (err) {
-      console.error('Login error:', err);
-      setSigningIn(false);
-    }
+  const handleLogin = () => {
+    setSigningIn(true);
+    window.location.href = '/api/auth/google';
   };
 
   // LANDING VIEW — this is the default render (including while the session is

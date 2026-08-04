@@ -5,7 +5,6 @@ import { ContactsManager } from '@/components/ContactsManager';
 import { TokenShareCard } from '@/components/TokenShareCard';
 import { Users, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { EmergencyContact } from '@/types';
-import { signInWithGoogle, getAuthHeaders } from '@/lib/supabase';
 import { useAuthSession } from '@/lib/useAuthSession';
 
 function ContactsManagerSkeleton() {
@@ -27,7 +26,7 @@ export default function ContactsPage() {
 
   const fetchContacts = useCallback(async () => {
     try {
-      const res = await fetch('/api/ping', { headers: await getAuthHeaders() });
+      const res = await fetch('/api/ping');
       const data = await res.json();
       if (data.contacts) setContacts(data.contacts);
       if (data.user?.emergencyToken) setToken(data.user.emergencyToken);
@@ -44,14 +43,9 @@ export default function ContactsPage() {
     }
   }, [user?.id, fetchContacts]);
 
-  const handleLogin = async () => {
-    try {
-      setSigningIn(true);
-      await signInWithGoogle();
-    } catch (err) {
-      console.error(err);
-      setSigningIn(false);
-    }
+  const handleLogin = () => {
+    setSigningIn(true);
+    window.location.href = '/api/auth/google';
   };
 
   if (authLoading) {

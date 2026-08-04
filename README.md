@@ -22,7 +22,8 @@
 ## 🛠️ Stack Technique
 
 - **Framework Web** : [Next.js 16](https://nextjs.org/) (App Router, Server Components & API Routes)
-- **Base de Données** : [Supabase PostgreSQL](https://supabase.com/) (Auth, RLS & DB Serverless)
+- **Base de Données** : Postgres (hébergé sur [Supabase](https://supabase.com/), connexion directe via `postgres.js` — sans Supabase Auth ni RLS)
+- **Authentification** : OAuth Google géré directement par l'app (session cookie signée, sans service d'auth tiers)
 - **Gestionnaire de Chronomètres / Cache** : [Upstash Redis](https://upstash.com/) (Storage REST API)
 - **Service d'E-mail** : [Resend API](https://resend.com/)
 - **Styling** : TailwindCSS, Lucide Icons, Glassmorphism UI
@@ -37,7 +38,9 @@ Suivez ces étapes pour déployer votre propre instance autonome de **Toujours V
 ### 1. Prérequis
 
 - [Node.js](https://nodejs.org/) v20.0+ et `npm`
-- Un compte [Supabase](https://supabase.com/) (Gratuit)
+- [Docker](https://www.docker.com/) (pour la base Postgres de développement local)
+- Un compte [Supabase](https://supabase.com/) (Gratuit) — uniquement pour l'hébergement Postgres de production, pas pour son Auth
+- Un projet [Google Cloud](https://console.cloud.google.com/) avec un client OAuth 2.0 (Gratuit)
 - Un compte [Upstash](https://upstash.com/) (Gratuit)
 - Un compte [Resend](https://resend.com/) (Gratuit)
 - Un compte [Vercel](https://vercel.com/) (ou tout hébergeur compatible Node.js / Docker)
@@ -57,35 +60,30 @@ npm install
 
 ---
 
-### 3. Configuration de la Base de Données (Supabase)
+### 3. Base de Données & Migrations (Postgres)
 
-1. Créez un nouveau projet sur **[Supabase](https://supabase.com/)**.
-2. Allez dans l'onglet **SQL Editor** de votre console Supabase.
-3. Ouvrez et exécutez l'intégralité du script SQL de structure :  
-   👉 [`supabase/schema.sql`](./supabase/schema.sql)
-4. Activez la sécurité **Row Level Security (RLS)** pour sécuriser l'accès aux données :
-   ```sql
-   ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-   ALTER TABLE public.emergency_contacts ENABLE ROW LEVEL SECURITY;
-   ALTER TABLE public.ping_logs ENABLE ROW LEVEL SECURITY;
-   ALTER TABLE public.alert_logs ENABLE ROW LEVEL SECURITY;
+L'app se connecte directement à Postgres (pas de RLS, pas de service Auth Supabase — la sécurité est gérée par l'app elle-même) via [node-pg-migrate](https://github.com/salsita/node-pg-migrate), sans dépendre du CLI Supabase.
 
-   CREATE POLICY "Users access own profile" ON public.users FOR ALL USING (auth.uid() = id);
-   CREATE POLICY "Users manage own contacts" ON public.emergency_contacts FOR ALL USING (auth.uid() = user_id);
-   CREATE POLICY "Users manage own pings" ON public.ping_logs FOR ALL USING (auth.uid() = user_id);
-   ```
+**En développement local**, une base Postgres séparée tourne dans Docker :
+```bash
+docker-compose up -d      # démarre Postgres sur localhost:5432
+npm run db:migrate        # applique les migrations (dossier migrations/)
+```
+`DATABASE_URL` pointe déjà vers cette base par défaut dans `.env.local` (section 6) — vos données locales n'ont donc aucun impact sur la production.
+
+**En production**, créez un projet sur **[Supabase](https://supabase.com/)** (ou toute instance Postgres), récupérez la chaîne de connexion (**Database** > **Connect** > *Session pooler*) pour `DATABASE_URL` sur Vercel. Les migrations s'y appliquent **automatiquement à chaque déploiement Production** (voir section 8bis) — aucune étape manuelle nécessaire après le premier déploiement.
 
 ---
 
-### 4. Configuration d'Authentification Google (Supabase Auth)
+### 4. Configuration d'Authentification Google (OAuth direct)
 
-1. Dans le tableau de bord Supabase, allez dans **Authentication** > **Providers** et activez **Google**.
-2. Renseignez votre `Client ID` et `Client Secret` obtenus sur la console Google Cloud.
-3. Dans **Authentication** > **URL Configuration** :
-   - **Site URL** : `https://votre-domaine.fr`
-   - **Redirect URLs** :
-     - `https://votre-domaine.fr/auth/callback`
-     - `http://localhost:3000/auth/callback`
+L'app gère elle-même le flow OAuth Google (pas de service d'auth tiers) :
+
+1. Dans [Google Cloud Console](https://console.cloud.google.com/apis/credentials), créez des identifiants **OAuth 2.0 Client ID** de type *Application Web*.
+2. Ajoutez les **Authorized redirect URIs** suivants :
+   - `https://votre-domaine.fr/api/auth/google/callback`
+   - `http://localhost:3000/api/auth/google/callback`
+3. Renseignez `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` (section 6).
 
 ---
 
@@ -101,10 +99,15 @@ npm install
 Créez un fichier `.env.local` à la racine de votre projet avec la structure suivante :
 
 ```env
-# URL et Clés Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://votre-projet.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# Postgres (chaîne de connexion depuis Supabase > Database > Connect)
+DATABASE_URL=postgresql://postgres.votre-projet:mot-de-passe@aws-0-region.pooler.supabase.com:5432/postgres
+
+# Session applicative — générez avec : openssl rand -base64 32
+SESSION_SECRET=votre_secret_de_session_tres_long
+
+# OAuth Google (voir section 4)
+GOOGLE_CLIENT_ID=votre-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
 
 # Upstash Redis
 UPSTASH_REDIS_REST_URL=https://votre-db.upstash.io
@@ -137,7 +140,7 @@ L'application peut envoyer des notifications push directement sur l'appareil de 
    npx web-push generate-vapid-keys
    ```
 2. Renseignez `NEXT_PUBLIC_VAPID_PUBLIC_KEY` et `VAPID_PRIVATE_KEY` dans `.env.local` (et sur Vercel).
-3. Appliquez la migration `supabase/migrations/20260802020000_push_subscriptions.sql` (ou re-exécutez `supabase/schema.sql`) pour créer la table `push_subscriptions`.
+3. La table `push_subscriptions` est déjà créée par les migrations (section 3) — rien à faire de plus côté base.
 4. Dans la page **Réglages** de l'application, activez le toggle "Rappels de pré-alerte (Push & Son)" pour vous abonner depuis l'appareil courant. Sans clé VAPID configurée, le toggle reste désactivé et les envois passent en mode simulation (log serveur uniquement).
 5. Ces rappels dépendent du même cron que les alertes e-mail (`/api/check-alerts`, voir section 8) : ils ne peuvent se déclencher que si ce endpoint est appelé plus fréquemment que la fenêtre de pré-alerte de 5 minutes.
 
@@ -184,6 +187,18 @@ Le fichier `vercel.json` est pré-configuré pour un déclenchement automatique 
   ```http
   Authorization: Bearer votre_cle_secrete_ultra_longue
   ```
+
+---
+
+### 8bis. Migrations Automatiques au Déploiement
+
+`npm run build` (la commande de build configurée dans `vercel.json`) exécute d'abord `scripts/migrate-build.js`, qui applique les migrations en attente contre `DATABASE_URL` avant de builder l'app. Concrètement :
+
+- **Déploiement Production Vercel** : les migrations s'appliquent automatiquement à chaque déploiement. Un problème de migration fait échouer le build (comportement volontaire, pour ne jamais déployer un code qui suppose un schéma absent).
+- **Déploiements Preview Vercel** : l'auto-migration est **désactivée** (elles partagent aujourd'hui la même base que la Production — voir section 3 — donc une branche non relue ne doit pas pouvoir en modifier le schéma automatiquement).
+- **Ailleurs** (build local, autre hébergeur) : la migration s'exécute normalement.
+
+Pour migrer manuellement dans n'importe quel contexte : `npm run db:migrate` (utilise `DATABASE_URL` de `.env.local`, ou surchargez-la en préfixant la commande).
 
 ---
 

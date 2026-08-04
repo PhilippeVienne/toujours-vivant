@@ -4,15 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/migrate-build.js && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "node-pg-migrate --envPath .env.local up",
+    "db:migrate:down": "node-pg-migrate --envPath .env.local down",
+    "db:migrate:create": "node-pg-migrate -j sql create"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.111.0",
     "@upstash/redis": "^1.38.1",
+    "jose": "^6.2.7",
     "lucide-react": "^1.28.0",
     "next": "16.2.12",
+    "postgres": "^3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.18.1",
@@ -21,11 +25,15 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.22.0",
     "playwright": "^1.62.1",
     "tailwindcss": "^4",
     "typescript": "^5"

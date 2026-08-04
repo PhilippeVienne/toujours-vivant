@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, supabase, regenerateUserEmergencyToken, getAuthenticatedUserId } from '@/lib/supabase';
+import { isDbConfigured, regenerateUserEmergencyToken, getAuthenticatedUserId } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     }
 
     let newToken: string | null = null;
-    if (isSupabaseConfigured && supabase) {
+    if (isDbConfigured) {
       newToken = await regenerateUserEmergencyToken(userId);
     }
 
